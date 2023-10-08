@@ -1,0 +1,270 @@
+import mysql.connector
+
+# Establish a connection to your MySQL database
+cnx = mysql.connector.connect(
+    host="your_host",
+    user="your_username",
+    password="your_password",
+    database="your_database"
+)
+
+# Create a cursor object to execute SQL queries
+cursor = cnx.cursor()
+
+# Specify the table name
+table_name = "YourTableName"
+
+# Counting total records
+count_query = f"SELECT COUNT(*) FROM {table_name};"
+cursor.execute(count_query)
+row_count = cursor.fetchone()[0]
+print("Total Records:", row_count)
+
+# Analyzing table size
+size_query = f"""
+    SELECT 
+        ROUND(((data_length + index_length) / 1024 / 1024), 2) AS SizeMB 
+    FROM 
+        information_schema.tables 
+    WHERE 
+        table_schema = 'YourSchemaName' 
+        AND table_name = '{table_name}';
+"""
+cursor.execute(size_query)
+table_size = cursor.fetchone()[0]
+print("Table Size (MB):", table_size)
+
+# Analyzing column count and structure of a table
+column_query = f"""
+    SELECT 
+        column_name AS ColumnName,
+        data_type AS DataType,
+        character_maximum_length AS MaxLength,
+        is_nullable AS IsNullable 
+    FROM 
+        information_schema.columns 
+    WHERE 
+        table_schema = 'YourSchemaName' 
+        AND table_name = '{table_name}';
+"""
+cursor.execute(column_query)
+table_columns = cursor.fetchall()
+
+print("Table Columns:")
+for column in table_columns:
+    column_name = column[0]
+    data_type = column[1]
+    max_length = column[2]
+    is_nullable = column[3]
+    print("Column Name:", column_name)
+    print("Data Type:", data_type)
+    print("Max Length:", max_length)
+    print("Is Nullable:", is_nullable)
+    print()
+
+    # Analyzing index information for a column
+    index_query = f"SHOW INDEX FROM {table_name} WHERE Column_name = '{column_name}';"
+    cursor.execute(index_query)
+    column_indexes = cursor.fetchall()
+    print("Column Indexes:")
+    for index in column_indexes:
+        print(index)
+    print()
+
+# Analyzing primary key information for a table
+pk_query = f"""
+    SELECT 
+        column_name AS PrimaryKeyColumn 
+    FROM 
+        information_schema.key_column_usage 
+    WHERE 
+        constraint_name = 'PRIMARY' 
+        AND table_schema = 'YourSchemaName' 
+        AND table_name = '{table_name}';
+"""
+cursor.execute(pk_query)
+primary_key = cursor.fetchall()
+print("Primary Key Column(s):")
+for pk_column in primary_key:
+    print(pk_column[0])
+
+# Close the cursor and database connection
+cursor.close()
+cnx.close()
+
+#data currency
+
+import mysql.connector
+
+# Establish a connection to a SQL DB
+cnx = mysql.connector.connect(
+    host="",
+    user="",
+    password="",
+    database=""
+)
+
+# Create cursor object to execute SQL queries
+cursor = cnx.cursor()
+
+# Specify the table name
+table_name = "your_table_name"
+
+# Identify the most recent data update timestamp
+query = f"SELECT MAX(update_timestamp) AS most_recent_update FROM {table_name};"
+cursor.execute(query)
+most_recent_update = cursor.fetchone()[0]
+print(f"Most recent data update: {most_recent_update}")
+
+# Calculate the age of data in days
+query = f"SELECT DATEDIFF(CURRENT_DATE, MAX(update_timestamp)) AS data_age_in_days FROM {table_name};"
+cursor.execute(query)
+data_age_in_days = cursor.fetchone()[0]
+print(f"Data age in days: {data_age_in_days}")
+
+# Identify tables with outdated data
+query = f"SELECT table_name, MAX(update_timestamp) AS last_update FROM {table_name} GROUP BY table_name HAVING MAX(update_timestamp) < DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY);"
+cursor.execute(query)
+outdated_tables = cursor.fetchall()
+if outdated_tables:
+    print("Tables with outdated data:")
+    for table in outdated_tables:
+        print(f"Table: {table[0]}, Last Update: {table[1]}")
+
+# Calculate the average data age by table
+query = f"SELECT table_name, AVG(DATEDIFF(CURRENT_DATE, update_timestamp)) AS average_data_age_in_days FROM {table_name} GROUP BY table_name;"
+cursor.execute(query)
+average_data_age = cursor.fetchall()
+if average_data_age:
+    print("Average data age by table:")
+    for table in average_data_age:
+        print(f"Table: {table[0]}, Average Data Age: {table[1]}")
+
+# Close the cursor and database connection
+cursor.close()
+cnx.close()
+
+
+#  compare datasets
+
+
+import mysql.connector
+
+# Establish a connection to your MySQL database
+cnx = mysql.connector.connect(
+    host="your_host",
+    user="your_username",
+    password="your_password",
+    database="your_database"
+)
+
+# Create a cursor object to execute SQL queries
+cursor = cnx.cursor()
+
+# Specify the table names and column names
+datasets = [("dataset1", "column1, column2"), ("dataset2", "column1, column2")]
+common_columns = ["column1", "column2"]  # Specify the common columns to compare
+
+for dataset_name, columns in datasets:
+    # Count the number of rows in the dataset
+    query = f"SELECT '{dataset_name}' AS dataset_name, COUNT(*) AS row_count FROM {dataset_name};"
+    cursor.execute(query)
+    row_count = cursor.fetchone()[0]
+    print(f"{dataset_name} - Row Count: {row_count}")
+
+# Compare row counts between datasets
+query = f"SELECT 'Dataset 1' AS dataset_name, COUNT(*) AS row_count FROM dataset1 EXCEPT SELECT 'Dataset 2' AS dataset_name, COUNT(*) AS row_count FROM dataset2;"
+cursor.execute(query)
+row_count_diff1 = cursor.fetchone()[0]
+print("Row Count Difference (Dataset 1 - Dataset 2):", row_count_diff1)
+
+query = f"SELECT 'Dataset 2' AS dataset_name, COUNT(*) AS row_count FROM dataset2 EXCEPT SELECT 'Dataset 1' AS dataset_name, COUNT(*) AS row_count FROM dataset1;"
+cursor.execute(query)
+row_count_diff2 = cursor.fetchone()[0]
+print("Row Count Difference (Dataset 2 - Dataset 1):", row_count_diff2)
+
+# Compare data between datasets
+for column in common_columns:
+    query = f"SELECT 'Dataset 1' AS dataset_name, {column} FROM dataset1 EXCEPT SELECT 'Dataset 2' AS dataset_name, {column} FROM dataset2;"
+    cursor.execute(query)
+    mismatch_rows_dataset1 = cursor.fetchall()
+    if mismatch_rows_dataset1:
+        print(f"Mismatch in Dataset 1 - Column: {column}")
+        for row in mismatch_rows_dataset1:
+            print(row)
+
+    query = f"SELECT 'Dataset 2' AS dataset_name, {column} FROM dataset2 EXCEPT SELECT 'Dataset 1' AS dataset_name, {column} FROM dataset1;"
+    cursor.execute(query)
+    mismatch_rows_dataset2 = cursor.fetchall()
+    if mismatch_rows_dataset2:
+        print(f"Mismatch in Dataset 2 - Column: {column}")
+        for row in mismatch_rows_dataset2:
+            print(row)
+
+# Close the cursor and database connection
+cursor.close()
+cnx.close()
+
+#distribution
+
+import mysql.connector
+
+# Establish a connection to your MySQL database
+cnx = mysql.connector.connect(
+    host="your_host",
+    user="your_username",
+    password="your_password",
+    database="your_database"
+)
+
+# Create a cursor object to execute SQL queries
+cursor = cnx.cursor()
+
+# Count of unique values for each column
+query = "SELECT column_name, COUNT(DISTINCT column_name) AS unique_values_count FROM your_table_name GROUP BY column_name;"
+cursor.execute(query)
+unique_values_counts = cursor.fetchall()
+if unique_values_counts:
+    print("Unique Values Count:")
+    for row in unique_values_counts:
+        print(row)
+
+# Frequency distribution for a specific column
+query = "SELECT column_name, COUNT(*) AS frequency FROM your_table_name GROUP BY column_name ORDER BY frequency DESC;"
+cursor.execute(query)
+frequency_distribution = cursor.fetchall()
+if frequency_distribution:
+    print("Frequency Distribution:")
+    for row in frequency_distribution:
+        print(row)
+
+# Minimum, maximum, and average values for numeric columns
+query = "SELECT column_name, MIN(column_name) AS minimum_value, MAX(column_name) AS maximum_value, AVG(column_name) AS average_value FROM your_table_name WHERE column_name IS NOT NULL GROUP BY column_name;"
+cursor.execute(query)
+numeric_column_stats = cursor.fetchall()
+if numeric_column_stats:
+    print("Numeric Column Stats:")
+    for row in numeric_column_stats:
+        print(row)
+
+# Value distribution across categories (for categorical columns)
+query = "SELECT category_column, value_column, COUNT(*) AS frequency FROM your_table_name GROUP BY category_column, value_column ORDER BY category_column, value_column;"
+cursor.execute(query)
+value_distribution = cursor.fetchall()
+if value_distribution:
+    print("Value Distribution across Categories:")
+    for row in value_distribution:
+        print(row)
+
+# Histogram analysis (for numeric columns)
+query = "SELECT column_name, FLOOR(value_column / bin_width) * bin_width AS bin_start, FLOOR(value_column / bin_width) * bin_width + bin_width AS bin_end, COUNT(*) AS frequency FROM your_table_name WHERE column_name IS NOT NULL GROUP BY column_name, FLOOR(value_column / bin_width) ORDER BY column_name, bin_start;"
+cursor.execute(query)
+histogram_analysis = cursor.fetchall()
+if histogram_analysis:
+    print("Histogram Analysis:")
+    for row in histogram_analysis:
+        print(row)
+
+# Close the cursor and database connection
+cursor.close()
+cnx.close()
